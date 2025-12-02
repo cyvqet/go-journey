@@ -1,0 +1,90 @@
+package web
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/dlclark/regexp2"
+	"github.com/gin-gonic/gin"
+)
+
+const (
+	emailRegex    = `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`
+	passwordRegex = `^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$`
+)
+
+type UserHandler struct {
+}
+
+func NewUserHandler() *UserHandler {
+	return &UserHandler{}
+}
+
+func (u *UserHandler) RegisterRouter(r *gin.Engine) {
+	ug := r.Group("/user")
+
+	ug.POST("/signup", u.Signup)
+	ug.POST("/login", u.Login)
+	ug.POST("/edit", u.Edit)
+	ug.POST("/profile", u.Profile)
+}
+
+func (u *UserHandler) Signup(c *gin.Context) {
+
+	type signupReq struct {
+		Email           string `json:"email"`
+		Password        string `json:"password"`
+		ConfirmPassword string `json:"confirmPassword"`
+	}
+
+	var req signupReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "无效请求"})
+		return
+	}
+
+	ok, err := ValidateEmail(req.Email)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
+		return
+	}
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "邮箱格式错误"})
+		return
+	}
+
+	ok, err = ValidatePassword(req.Password)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
+		return
+	}
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "密码格式错误"})
+		return
+	}
+
+	if req.Password != req.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "两次输入的密码不一致"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "注册成功"})
+}
+
+func (u *UserHandler) Login(c *gin.Context) {}
+
+func (u *UserHandler) Edit(c *gin.Context) {}
+
+func (u *UserHandler) Profile(c *gin.Context) {}
+
+func ValidatePassword(password string) (bool, error) {
+	re := regexp2.MustCompile(passwordRegex, 0)
+	return re.MatchString(password)
+}
+
+func ValidateEmail(email string) (bool, error) {
+	re := regexp2.MustCompile(emailRegex, 0)
+	return re.MatchString(email)
+}
