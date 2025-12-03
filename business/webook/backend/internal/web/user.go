@@ -3,6 +3,8 @@ package web
 import (
 	"log"
 	"net/http"
+	"webook/internal/domain"
+	"webook/internal/service"
 
 	"github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
@@ -14,10 +16,13 @@ const (
 )
 
 type UserHandler struct {
+	svc *service.UserService
 }
 
-func NewUserHandler() *UserHandler {
-	return &UserHandler{}
+func NewUserHandler(svc *service.UserService) *UserHandler {
+	return &UserHandler{
+		svc: svc,
+	}
 }
 
 func (u *UserHandler) RegisterRouter(r *gin.Engine) {
@@ -67,6 +72,15 @@ func (u *UserHandler) Signup(c *gin.Context) {
 
 	if req.Password != req.ConfirmPassword {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "两次输入的密码不一致"})
+		return
+	}
+
+	err = u.svc.SignUp(c.Request.Context(), domain.User{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统异常"})
 		return
 	}
 

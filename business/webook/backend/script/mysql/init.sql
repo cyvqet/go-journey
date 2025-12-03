@@ -1,0 +1,1 @@
+create database webook; // 创建名为 webook 的数据库
