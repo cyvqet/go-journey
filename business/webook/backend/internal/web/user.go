@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"webook/internal/domain"
@@ -36,13 +37,13 @@ func (u *UserHandler) RegisterRouter(r *gin.Engine) {
 
 func (u *UserHandler) Signup(c *gin.Context) {
 
-	type signupReq struct {
+	type SignupReq struct {
 		Email           string `json:"email"`
 		Password        string `json:"password"`
 		ConfirmPassword string `json:"confirmPassword"`
 	}
 
-	var req signupReq
+	var req SignupReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "无效请求"})
 		return
@@ -79,6 +80,10 @@ func (u *UserHandler) Signup(c *gin.Context) {
 		Email:    req.Email,
 		Password: req.Password,
 	})
+	if errors.Is(err, service.ErrUserDuplicateEmail) {
+		c.JSON(http.StatusOK, gin.H{"message": "邮箱冲突"})
+		return
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统异常"})
 		return
@@ -87,7 +92,30 @@ func (u *UserHandler) Signup(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "注册成功"})
 }
 
-func (u *UserHandler) Login(c *gin.Context) {}
+func (u *UserHandler) Login(c *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	var req LoginReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "无效请求"})
+		return
+	}
+
+	err := u.svc.Login(c.Request.Context(), req.Email, req.Password)
+	if err != nil {
+		if errors.Is(err, service.ErrInvaildUserOrPassword) {
+			c.JSON(http.StatusOK, gin.H{"message": "用户名/密码错误"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "登陆成功"})
+}
 
 func (u *UserHandler) Edit(c *gin.Context) {}
 
