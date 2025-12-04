@@ -7,6 +7,10 @@ import (
 	"webook/internal/repository/dao"
 	"webook/internal/service"
 	"webook/internal/web"
+	"webook/internal/web/middleware"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -67,6 +71,11 @@ func initWebServer() *gin.Engine {
 
 		MaxAge: 12 * time.Hour, // 浏览器对预检请求（OPTIONS）的缓存时间
 	}))
+
+	store := cookie.NewStore([]byte("secret"))
+	server.Use(sessions.Sessions("mysession", store))
+
+	server.Use(middleware.NewLoginMiddlewareBuilder().Build())
 
 	return server
 }

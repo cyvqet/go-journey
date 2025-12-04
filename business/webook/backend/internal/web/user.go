@@ -8,6 +8,7 @@ import (
 	"webook/internal/service"
 
 	"github.com/dlclark/regexp2"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -114,12 +115,22 @@ func (u *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
+	session := sessions.Default(c)      // 获取当前请求的 session
+	session.Set("userEmail", req.Email) // 存储用户邮箱到 session 中
+	err = session.Save()                // 保存 session
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "登陆成功"})
 }
 
 func (u *UserHandler) Edit(c *gin.Context) {}
 
-func (u *UserHandler) Profile(c *gin.Context) {}
+func (u *UserHandler) Profile(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "获取用户信息成功"})
+}
 
 func ValidatePassword(password string) (bool, error) {
 	re := regexp2.MustCompile(passwordRegex, 0)
