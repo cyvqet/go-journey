@@ -3,20 +3,28 @@ package middleware
 import (
 	"log"
 	"net/http"
+	"slices"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
-type LoginMiddlewareBuilder struct{}
+type LoginMiddlewareBuilder struct {
+	paths []string
+}
 
 func NewLoginMiddlewareBuilder() *LoginMiddlewareBuilder {
 	return &LoginMiddlewareBuilder{}
 }
 
+func (l *LoginMiddlewareBuilder) IgnorePath(paths string) *LoginMiddlewareBuilder {
+	l.paths = append(l.paths, paths)
+	return l
+}
+
 func (l *LoginMiddlewareBuilder) Build() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		if ctx.Request.RequestURI == "/user/login" || ctx.Request.RequestURI == "/user/signup" {
+		if slices.Contains(l.paths, ctx.Request.RequestURI) {
 			ctx.Next()
 			return
 		}
