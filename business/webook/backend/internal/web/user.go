@@ -32,6 +32,7 @@ func (u *UserHandler) RegisterRouter(r *gin.Engine) {
 
 	ug.POST("/signup", u.Signup)
 	ug.POST("/login", u.Login)
+	ug.POST("/logout", u.Logout)
 	ug.POST("/edit", u.Edit)
 	ug.POST("/profile", u.Profile)
 }
@@ -117,13 +118,30 @@ func (u *UserHandler) Login(c *gin.Context) {
 
 	session := sessions.Default(c)      // 获取当前请求的 session
 	session.Set("userEmail", req.Email) // 存储用户邮箱到 session 中
-	err = session.Save()                // 保存 session
+	session.Options(sessions.Options{
+		MaxAge: 3600,
+	})
+	err = session.Save() // 保存 session
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "登陆成功"})
+}
+
+func (u *UserHandler) Logout(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Options(sessions.Options{
+		MaxAge: -1,
+	})
+	err := session.Save()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "登出成功"})
 }
 
 func (u *UserHandler) Edit(c *gin.Context) {}
