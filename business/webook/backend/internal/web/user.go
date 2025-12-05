@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 	"webook/internal/domain"
 	"webook/internal/service"
 
@@ -157,6 +158,9 @@ func (u *UserHandler) LoginJwt(c *gin.Context) {
 
 	claim := UserClaims{
 		UserEmail: req.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute)), // 设置过期时间
+		},
 	}
 
 	// 生成 JWT token
