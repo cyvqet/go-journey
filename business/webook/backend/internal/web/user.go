@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"webook/internal/domain"
@@ -33,7 +34,7 @@ func (u *UserHandler) RegisterRouter(r *gin.Engine) {
 
 	ug.POST("/signup", u.Signup)
 	ug.POST("/login", u.Login)
-	ug.POST("/login_jwt", u.LoginJWT)
+	ug.POST("/login_jwt", u.LoginJwt)
 	ug.POST("/logout", u.Logout)
 	ug.POST("/edit", u.Edit)
 	ug.POST("/profile", u.Profile)
@@ -132,7 +133,7 @@ func (u *UserHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "登陆成功"})
 }
 
-func (u *UserHandler) LoginJWT(c *gin.Context) {
+func (u *UserHandler) LoginJwt(c *gin.Context) {
 	type LoginReq struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -154,8 +155,12 @@ func (u *UserHandler) LoginJWT(c *gin.Context) {
 		return
 	}
 
+	claim := UserClaims{
+		UserEmail: req.Email,
+	}
+
 	// 生成 JWT token
-	token := jwt.New(jwt.SigningMethodHS256)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 	tokenStr, err := token.SignedString([]byte("secret"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
@@ -185,6 +190,21 @@ func (u *UserHandler) Logout(c *gin.Context) {
 func (u *UserHandler) Edit(c *gin.Context) {}
 
 func (u *UserHandler) Profile(c *gin.Context) {
+	// 通过中间件存储在上下文中的 claim 获取用户信息
+	claimAny, exists := c.Get("claim")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
+		return
+	}
+
+	claim, ok := claimAny.(UserClaims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
+		return
+	}
+
+	fmt.Printf("claim: %+v\n", claim)
+
 	c.JSON(http.StatusOK, gin.H{"message": "获取用户信息成功"})
 }
 
@@ -196,4 +216,10 @@ func ValidatePassword(password string) (bool, error) {
 func ValidateEmail(email string) (bool, error) {
 	re := regexp2.MustCompile(emailRegex, 0)
 	return re.MatchString(email)
+}
+
+type UserClaims struct {
+	UserId    int64
+	UserEmail string
+	jwt.RegisteredClaims
 }

@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"slices"
 	"strings"
+	"webook/internal/web"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -45,9 +45,9 @@ func (l *LoginJwtMiddlewareBuilder) Build() gin.HandlerFunc {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "未授权"})
 			return
 		}
-
+		claim := web.UserClaims{} // 自定义的 Claims 结构体
 		token := segs[1]
-		jwtToken, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
+		jwtToken, err := jwt.ParseWithClaims(token, &claim, func(t *jwt.Token) (any, error) {
 			return []byte("secret"), nil
 		})
 
@@ -56,7 +56,8 @@ func (l *LoginJwtMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 
-		fmt.Printf("JWT 验证通过: %+v\n", jwtToken.Claims)
+		// 将 claim 存储到上下文中，供后续处理使用
+		ctx.Set("claim", claim)
 
 		ctx.Next()
 	}
