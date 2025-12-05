@@ -9,11 +9,6 @@ import (
 	"webook/internal/web"
 	"webook/internal/web/middleware"
 
-	// "github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions"
-	// "github.com/gin-contrib/sessions/cookie"
-	"github.com/gin-contrib/sessions/redis"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
@@ -58,7 +53,7 @@ func initWebServer() *gin.Engine {
 
 		AllowHeaders: []string{"Origin", "Authorization", "Content-Type"}, // 指定浏览器可以携带的请求头
 
-		ExposeHeaders: []string{"Content-Length"}, // 指定哪些响应头可以暴露给前端 JS
+		ExposeHeaders: []string{"Jwt-Token"}, // 指定哪些响应头可以暴露给前端 JS
 
 		// AllowCredentials: 是否允许跨域携带 cookies 或者 Authorization 等凭证
 		// 注意：开启后，AllowOrigins 不能为 "*"（必须明确指定域名）
@@ -74,16 +69,7 @@ func initWebServer() *gin.Engine {
 		MaxAge: 12 * time.Hour, // 浏览器对预检请求（OPTIONS）的缓存时间
 	}))
 
-	// store := cookie.NewStore([]byte("secret"))
-	store, err := redis.NewStore(16, "tcp", "localhost:6379", "", "", []byte("secret"))
-	if err != nil {
-		log.Fatal("创建 Redis Session 存储失败:", err)
-		panic(err)
-	}
-	server.Use(sessions.Sessions("mysession", store))
-
-	server.Use(middleware.NewLoginMiddlewareBuilder().
-		IgnorePath("/user/login").IgnorePath("/user/signup").Build())
+	jwtLogin(server) // 使用 JWT 登录中间件
 
 	return server
 }
@@ -95,3 +81,21 @@ func initUser(db *gorm.DB) *web.UserHandler {
 	userHandler := web.NewUserHandler(userService)
 	return userHandler
 }
+
+func jwtLogin(server *gin.Engine) {
+	server.Use(middleware.NewLoginJwtMiddlewareBuilder().
+		IgnorePath("/user/login_jwt").IgnorePath("/user/signup").Build())
+}
+
+// func sessionLogin(server *gin.Engine) {
+// 	// store := cookie.NewStore([]byte("secret"))
+// 	store, err := redis.NewStore(16, "tcp", "localhost:6379", "", "", []byte("secret"))
+// 	if err != nil {
+// 		log.Fatal("创建 Redis Session 存储失败:", err)
+// 		panic(err)
+// 	}
+// 	server.Use(sessions.Sessions("mysession", store))
+
+// 	server.Use(middleware.NewLoginMiddlewareBuilder().
+// 		IgnorePath("/user/login").IgnorePath("/user/signup").Build())
+// }

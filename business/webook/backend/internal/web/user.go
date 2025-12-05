@@ -10,6 +10,7 @@ import (
 	"github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
@@ -32,6 +33,7 @@ func (u *UserHandler) RegisterRouter(r *gin.Engine) {
 
 	ug.POST("/signup", u.Signup)
 	ug.POST("/login", u.Login)
+	ug.POST("/login_jwt", u.LoginJWT)
 	ug.POST("/logout", u.Logout)
 	ug.POST("/edit", u.Edit)
 	ug.POST("/profile", u.Profile)
@@ -126,6 +128,42 @@ func (u *UserHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
 		return
 	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "登陆成功"})
+}
+
+func (u *UserHandler) LoginJWT(c *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	var req LoginReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "无效请求"})
+		return
+	}
+
+	err := u.svc.Login(c.Request.Context(), req.Email, req.Password)
+	if err != nil {
+		if errors.Is(err, service.ErrInvaildUserOrPassword) {
+			c.JSON(http.StatusOK, gin.H{"message": "用户名/密码错误"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
+		return
+	}
+
+	// 生成 JWT token
+	token := jwt.New(jwt.SigningMethodHS256)
+	tokenStr, err := token.SignedString([]byte("secret"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "系统错误"})
+		return
+	}
+
+	// 将 token 返回给客户端
+	c.Header("Jwt-Token", tokenStr)
 
 	c.JSON(http.StatusOK, gin.H{"message": "登陆成功"})
 }
