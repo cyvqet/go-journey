@@ -65,6 +65,11 @@ func (l *LoginJwtMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 
+		if claim.UserAgent != ctx.Request.UserAgent() { // 校验 UserAgent 是否一致
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "未授权"})
+			return
+		}
+
 		remaining := time.Until(claim.ExpiresAt.Time)
 		fmt.Printf("token 剩余时间: %v\n", remaining)
 		if remaining <= refreshWhen {

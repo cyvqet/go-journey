@@ -158,6 +158,7 @@ func (u *UserHandler) LoginJwt(c *gin.Context) {
 
 	claim := UserClaims{
 		UserEmail: req.Email,
+		UserAgent: c.Request.UserAgent(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute)), // 设置过期时间
 		},
@@ -225,5 +226,6 @@ func ValidateEmail(email string) (bool, error) {
 type UserClaims struct {
 	UserId    int64
 	UserEmail string
+	UserAgent string
 	jwt.RegisteredClaims
 }
