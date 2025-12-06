@@ -8,9 +8,11 @@ import (
 	"webook/internal/service"
 	"webook/internal/web"
 	"webook/internal/web/middleware"
+	"webook/pkg/middleware/ratelimit"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -68,6 +70,12 @@ func initWebServer() *gin.Engine {
 
 		MaxAge: 12 * time.Hour, // 浏览器对预检请求（OPTIONS）的缓存时间
 	}))
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+	server.Use(ratelimit.NewBuilder(redisClient, time.Minute, 100).Build()) // 每分钟最多允许 100 次请求
 
 	jwtLogin(server) // 使用 JWT 登录中间件
 
