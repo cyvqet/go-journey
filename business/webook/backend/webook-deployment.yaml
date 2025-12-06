@@ -1,0 +1,26 @@
+apiVersion: apps/v1        
+kind: Deployment           
+metadata:
+  name: webook-record-service  
+spec:
+  replicas: 3              # 期望的Pod副本数
+  selector:                
+    matchLabels:           
+      app: webook-record   
+  template:                # Pod模板
+    metadata:              
+      labels:             
+        app: webook-record 
+    spec:                            # Pod的规格定义
+      containers:                    # 容器列表
+        - name: webook-record        # 容器名称 
+          image: cyvqet/webook:v1.0  # 容器镜像
+          ports:            
+            - containerPort: 8080    # 容器监听的端口号
+          resources:
+            requests:            # 容器启动时请求的资源
+              memory: "256Mi"    # 最小内存：256兆字节
+              cpu: "250m"        # 最小CPU：250毫核（0.25个CPU核心）
+            limits:              # 容器运行时的资源上限（不能超过的限制）
+              memory: "512Mi"    # 最大内存：512兆字节
+              cpu: "500m"        # 最大CPU：500毫核（0.5个CPU核心）

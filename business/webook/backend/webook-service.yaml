@@ -1,0 +1,13 @@
+# service-docker-desktop.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: webook-record
+spec:
+  selector:
+    app: webook-record
+  ports:
+    - protocol: TCP
+      port: 8080        # 浏览器访问的端口
+      targetPort: 8080  # Pod端口
+  type: LoadBalancer    # Docker Desktop会自动映射到localhost
